@@ -1,0 +1,92 @@
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { Icon } from "leaflet";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Geocode from "react-geocode";
+import { approveOrderAction, getSellerNewOrdersAction } from '../../Store/orderSlice';
+import { Typography, Button } from "@mui/material";
+import React from "react";
+import Navbar from "../Navbar/Navbar";
+// create custom icon
+const customIcon = new Icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/447/447031.png",
+  //iconUrl: require("./icons/placeholder.png"),
+  iconSize: [38, 38] // size of the icon
+});
+
+export default function Map() {
+    Geocode.setApiKey(process.env.REACT_APP_GOOGLE_API);
+    Geocode.setLanguage("en");
+    Geocode.setRegion("rs");
+
+    const orders = useSelector((state) => state.order.undeliveredOrders);
+    const dispatch = useDispatch();
+    const [updatedOrders, setUpdatedOrders] = useState([]);
+
+    const refresh = async () => {
+        try{
+            dispatch(getSellerNewOrdersAction());
+        }catch (error){
+            console.error(error);
+        }
+    };
+
+    const calculatePositions = async () => {
+        try{
+            const tempOrders = await Promise.all(
+            
+            orders.map(async(order) => {
+                    // Geocode the address to get latitude and longitude
+                    const response = await Geocode.fromAddress(order.address);
+                    const { lat, lng } = response.results[0].geometry.location;
+                    // Create a new order object with the calculated position
+                    return {
+                        ...order,
+                        position: [lat, lng], 
+                        };
+                })
+            );
+            setUpdatedOrders(tempOrders);
+        } catch (error) {
+            console.error('Error calculating positions: ', error);
+        }
+    };
+    useEffect(() => {
+        refresh();
+        calculatePositions();
+    }, []);
+  return (
+    <React.Fragment><Navbar/>
+    <MapContainer center={[45.25472833688446, 19.83317432993583]} zoom={13} style={{ width: "100vw", height: "100vh" }} scrollWheelZoom={true}>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+        {/* Mapping through the markers */}
+        {updatedOrders.length !== 0 && updatedOrders.map((order) => (
+          !order.approved && (<Marker position={order.position} icon={customIcon}>
+            <Popup>
+                <Typography>Address: {order.address}</Typography>
+                <Typography>Comment: {order.comment}</Typography>
+                <Typography>Total: {order.totalPrice.toFixed(2)}$</Typography>
+                {!order.approved && (
+                  <>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={(e) => { const formData = new FormData();
+                        formData.append("orderId", order.id);
+                        dispatch(approveOrderAction(formData)).then(() => refresh());
+                      }}
+                    >
+                      Approve
+                    </Button>
+                  </>
+                )}</Popup>
+          </Marker>)
+        ))}
+    </MapContainer>
+    </React.Fragment>
+  );
+}

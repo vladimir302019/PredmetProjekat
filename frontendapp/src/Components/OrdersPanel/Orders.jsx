@@ -22,7 +22,7 @@ import DeliveryCountdown from './DeliveryCountdown'
 function Row(props) {
   const dispatch = useDispatch();
   const { row } = props;
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const [remainingHours, setRemainingHours] = useState(0); // State variable to store the remaining hours
 
   const handleCountdownComplete = () => {
@@ -74,7 +74,7 @@ const handleApproveClick = (id) => {
         <TableCell>Pending approval!</TableCell> 
         <TableCell>Pending approval!</TableCell></>)}
        
-       {!row.approved && !props.isBuyer && (<><TableCell>Pending approval!</TableCell> 
+       {!row.approved && !props.isBuyer && props.undelivered && (<><TableCell>Pending approval!</TableCell> 
         <TableCell>Pending approval!</TableCell> 
         <TableCell><Button color='success' variant='contained' 
         onClick={() => handleApproveClick(row.id, props.handleUpdateOrders)}>Approve order</Button></TableCell>
@@ -173,8 +173,8 @@ export default function Orders({orders, header, isBuyer, handleUpdateOrders, und
               <TableCell>Status</TableCell>
               <TableCell>Delivery Date</TableCell>
               {undelivered && <TableCell>Time to delivery</TableCell>}
-              {(undelivered && isBuyer)&& <TableCell>Cancel</TableCell>}
-              {!isBuyer  && <TableCell>Approve</TableCell>}
+              {(undelivered && isBuyer) && <TableCell>Cancel</TableCell>}
+              {(undelivered && !isBuyer)  && <TableCell>Approve</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>

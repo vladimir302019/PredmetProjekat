@@ -22,8 +22,9 @@ export default function Map() {
 
     const orders = useSelector((state) => state.order.undeliveredOrders);
     const dispatch = useDispatch();
+    const [ordersState, setOrdersState] = useState([...orders]);
     const [updatedOrders, setUpdatedOrders] = useState([]);
-
+    
     const refresh = async () => {
         try{
             dispatch(getSellerNewOrdersAction());
@@ -36,22 +37,37 @@ export default function Map() {
         try{
             const tempOrders = await Promise.all(
             
-            orders.map(async(order) => {
-                    // Geocode the address to get latitude and longitude
-                    const response = await Geocode.fromAddress(order.address);
-                    const { lat, lng } = response.results[0].geometry.location;
-                    // Create a new order object with the calculated position
-                    return {
-                        ...order,
-                        position: [lat, lng], 
-                        };
-                })
+            ordersState.map(async(order) => {
+                // Geocode the address to get latitude and longitude
+                const response = await Geocode.fromAddress(order.address);
+                const { lat, lng } = response.results[0].geometry.location;
+                // Create a new order object with the calculated position
+                return {
+                  ...order,
+                  position: [lat, lng], 
+                  };
+              })
             );
             setUpdatedOrders(tempOrders);
         } catch (error) {
             console.error('Error calculating positions: ', error);
         }
     };
+
+    const handleApproveOrder = (orderId) => {
+      const formData = new FormData();
+      formData.append("orderId", orderId);
+      dispatch(approveOrderAction(formData))
+        .then(() => {
+          const updatedOrdersCopy = [...updatedOrders];
+          const index = updatedOrdersCopy.findIndex((order) => order.id === orderId);
+          if (index !== -1) {
+            updatedOrdersCopy.splice(index, 1);
+            setUpdatedOrders(updatedOrdersCopy);
+          }
+        });
+    };
+
     useEffect(() => {
         refresh();
         calculatePositions();
@@ -75,10 +91,7 @@ export default function Map() {
                     <Button
                       variant="contained"
                       color="success"
-                      onClick={(e) => { const formData = new FormData();
-                        formData.append("orderId", order.id);
-                        dispatch(approveOrderAction(formData)).then(() => refresh());
-                      }}
+                      onClick={(e) => handleApproveOrder(order.id)}
                     >
                       Approve
                     </Button>

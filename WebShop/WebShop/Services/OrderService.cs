@@ -124,7 +124,7 @@ namespace WebShop.Services
             {
                 newOrder.Approved = false;
                 newOrder.Address = user.Address;
-                newOrder.DeliveryDate = DateTime.Now;
+                newOrder.DeliveryDate = DateTime.Now.AddMinutes(10);
             }
             else
             {
